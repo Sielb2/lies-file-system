@@ -1,4 +1,5 @@
 section .data
+		;hi
 	;i would like to apologise what you will be seeing
 	debug_text: db "Debug",0xA,0
 	debug_text_len: equ $-debug_text
