@@ -1,8 +1,10 @@
 section .data
-		;hi
 	;i would like to apologise what you will be seeing
 	debug_text: db "Debug",0xA,0
 	debug_text_len: equ $-debug_text
+	
+	opened_file_text: db "Contents:",0xA,0
+	opened_file_text_len: equ $-opened_file_text
 
 	part1: db "╭-------╮",0xA,0
 	part1_len: equ $-part1
@@ -31,7 +33,7 @@ section .data
 	button_img2_len: equ $-button_img2
 
 	button_img3:db "   <",0
-	button_img3_len: equ $-button_img3
+		button_img3_len: equ $-button_img3
 
 	button_img4:db "  <",0
 	button_img4_len: equ $-button_img4
@@ -58,18 +60,19 @@ section .data
 	small_button_bottom: db "╰-----╯",0xA,0
 	s_len5: equ $-small_button
 	
-	file_too_big_text: db "...file over 112 chars",0xA,0
+	file_too_big_text: db "...And more",0xA,0
 	file_too_big_text_len: equ $-file_too_big_text
 	
 	file_no_content_text: db "It's quiet around here",0xA,0
 	file_no_content_text_len: equ $-file_no_content_text
 
+	;sorry
 	file1: db "file1.txt",0
 	file2: db "file2.txt",0
 	file3: db "file3.txt",0
 	file4: db "file4.txt",0
 	file5: db "file5.txt",0
-
+	files_folder: db "files",0
 
 
 section .bss
@@ -80,14 +83,15 @@ section .bss
 	input_buffer: resb 1
 
 section .text
-	global _start
+
+global _start
 
 _start:
 	
 	lea rsi, [button_img2]
 	lea rdi, [fd]
 
-	mov rcx, 6
+	mov rcx, 5
 	rep movsb
 
 	call	create_button
@@ -95,16 +99,15 @@ _start:
 	lea rsi, [button_img3]
 	lea rdi, [fd]
 
-	mov rcx, 6
+	mov rcx, 5
 	rep movsb
 
 	call	create_button
 	lea rsi, [button_img]
 	lea rdi, [fd]
 
-	mov rcx, 6
+	mov rcx, 5
 	rep movsb
-
 	call    create_button
 	call	create_sbutton
 	call	media_selector
@@ -116,6 +119,23 @@ _exit:
 	mov	rax,60
 	mov	rdi,1
 	syscall
+_tell_opened_file:
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,part22
+	mov	rdx,part22_len
+	syscall
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,opened_file_text
+	mov	rdx,opened_file_text_len
+	syscall
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,part22
+	mov	rdx,part22_len
+	syscall
+	ret
 _debugging:
 	mov	rax,1
 	mov	rdi,1
@@ -135,11 +155,6 @@ media_selector:
 	mov     rsi,input_buffer
 	mov     rdx,1
 	syscall
-	call	file_content_check
-
-
-	syscall
-
 ;;;;;;;;AAAAAAAAAAA;;;;;;;;;;;
 
 	mov	al,[input_buffer]
@@ -198,26 +213,40 @@ media_selector:
 	ret
 
 _fileselector:
-
-	mov     rax,2 ;syscall open
-	lea     rdi,[to_be_opened_file] ;file
-	xor	rsi,rsi ;flags
-	xor	rdx,rdx ;permissions
+	mov	rax,2
+	lea	rdi,[rel files_folder]
+	xor	rsi,rsi
+	xor	rdx,rdx
 	syscall
+
+	test	rax,rax
+	js	_debugging
+	mov	rdi,rax
+
+	mov     rax,257
+	lea	rsi,[rel to_be_opened_file]
+	xor	rdx,rdx
+	xor	r10,r10 ;flags
+	syscall
+
+	test	rax,rax
+	js	_debugging
 	mov     rdi,rax ; save file descriptor
 
+	;read file
 	mov     rax,0
 	lea	rsi,[buffer]
 	mov     rdx,112
 	syscall
 
-	mov	rsi,rax
-	
+	call	_tell_opened_file
+
+	;write file
 	mov	rax,1
 	mov	rdi,1
 	lea	rsi,[buffer]
 	syscall
-
+	call	file_content_check
 	mov	rax,3
 	syscall
 
@@ -329,10 +358,11 @@ create_button:
 
 file_content_check:
 	mov	al,[buffer]
-
 	cmp	al, 0
 	je	no_file_content
-
+	cmp	al,112
+	jge	file_big
+	ret
 
 no_file_content:
 	mov	rax,1
@@ -341,4 +371,10 @@ no_file_content:
 	mov	rdx,file_no_content_text_len
 	syscall
 	ret
-
+file_big:
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,file_too_big_text
+	mov	rdx,file_too_big_text_len
+	syscall
+	ret
