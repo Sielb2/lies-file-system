@@ -1,12 +1,12 @@
 section .data
 	;i would like to apologise what you will be seeing
-	debug_text: db "Debug",0xA,0
+	debug_text: db "Debug",0xA
 	debug_text_len: equ $-debug_text
 	
-	opened_file_text: db "Contents:",0xA,0
+	opened_file_text: db "Contents:",0xA
 	opened_file_text_len: equ $-opened_file_text
 
-	part1: db "╭-------╮",0xA,0
+	part1: db "╭-------╮",0xA
 	part1_len: equ $-part1
 
 	; variations
@@ -14,16 +14,16 @@ section .data
 	part2: db "|",0
 	part2_len: equ $-part2
 
-	part22: db "|███████|",0xA,0
+	part22: db "|███████|",0xA
 	part22_len: equ $-part22
 
-	part23: db "███|",0xA,0
+	part23: db "███|",0xA
 	part23_len: equ $-part23
 
-	part24: db "██|",0xA,0
+	part24: db "██|",0xA
 	part24_len: equ $-part24
 
-	part3: db "╰-------╯",0xA,0
+	part3: db "╰-------╯",0xA
 	part3_len: equ $-part3
 
 	button_img: db "   *",0
@@ -33,7 +33,7 @@ section .data
 	button_img2_len: equ $-button_img2
 
 	button_img3:db "   <",0
-		button_img3_len: equ $-button_img3
+	button_img3_len: equ $-button_img3
 
 	button_img4:db "  <",0
 	button_img4_len: equ $-button_img4
@@ -45,28 +45,42 @@ section .data
 	input_msg_len: equ $-input_msg
 
 	;small
-	small_button: db "╭-----╮",0xA,0
+	small_button: db "╭-----╮",0xA
 	s_len1: equ $-small_button
 
-	small_button_middle: db "|█████|",0xA,0
+	small_button_middle: db "|█████|",0xA
 	s_len2: equ $-small_button
 
 	small_button_start: db  "|",0
 	s_len3: equ $-small_button_start
 
-	small_button_end: db "██|",0xA,0
+	small_button_end: db "██|",0xA
 	s_len4: equ $-small_button_end
 
-	small_button_bottom: db "╰-----╯",0xA,0
+	small_button_bottom: db "╰-----╯",0xA
 	s_len5: equ $-small_button
+
+	double: db "╭-------╮ ╭-------╮",0xA
+	double_len: equ $-double
 	
-	file_too_big_text: db "...And more",0xA,0
+	d_end: db "|    +██| |    +██|",0xA
+	d_end_len: equ $-d_end
+
+	d_s: db "| [1]███| | [1]███|",0xA
+	d_s_len: equ $-d_s
+	d_mid: db "|███████| |███████|",0xA
+	d_mid_len: equ $-d_mid
+	
+	d_b: db "╰-------╯ ╰-------╯",0xA
+	d_b_len: equ $-d_b
+	
+	file_too_big_text: db "...And more",0xA
 	file_too_big_text_len: equ $-file_too_big_text
 	
-	file_no_content_text: db "It's quiet around here",0xA,0
+	file_no_content_text: db "It's quiet around here",0xA
 	file_no_content_text_len: equ $-file_no_content_text
 
-	;sorry
+	;lol
 	file1: db "file1.txt",0
 	file2: db "file2.txt",0
 	file3: db "file3.txt",0
@@ -78,16 +92,13 @@ section .data
 section .bss
 	buffer: resb 112
 	to_be_opened_file: resb 100
-	app_num: resb 1
 	fd: resb 5
 	input_buffer: resb 1
 
 section .text
 
 global _start
-
 _start:
-	
 	lea rsi, [button_img2]
 	lea rdi, [fd]
 
@@ -103,13 +114,8 @@ _start:
 	rep movsb
 
 	call	create_button
-	lea rsi, [button_img]
-	lea rdi, [fd]
-
-	mov rcx, 5
-	rep movsb
-	call    create_button
-	call	create_sbutton
+	call	create_double
+	;call	create_sbutton
 	call	media_selector
 
 	; exit the program
@@ -117,7 +123,7 @@ _start:
 
 _exit:
 	mov	rax,60
-	mov	rdi,1
+	xor	rdi,rdi
 	syscall
 _tell_opened_file:
 	mov	rax,1
@@ -150,11 +156,18 @@ media_selector:
 	mov     rsi,input_msg
 	mov     rdx,input_msg_len
 	syscall
-	mov     rax,0
-	mov     rdi,0
-	mov     rsi,input_buffer
-	mov     rdx,1
+	mov	rax,0
+	mov	rdi,0
+	mov	rsi,input_buffer
+	mov	rdx,1
 	syscall
+	mov	al,[input_buffer]
+	sub	al,"0"
+	cmp	al,1 ;change this if thy shall add more files
+	jl	_fail
+	cmp	al,5
+	jg	_fail
+	call	_success
 ;;;;;;;;AAAAAAAAAAA;;;;;;;;;;;
 
 	mov	al,[input_buffer]
@@ -209,7 +222,7 @@ media_selector:
 	rep movsb
 
 	cmp     al,5
-	je      _fileselector
+	call      _fileselector
 	ret
 
 _fileselector:
@@ -253,7 +266,6 @@ _fileselector:
 	ret
 
 create_sbutton:
-	mov	byte [app_num],1
 	mov	rax,1
 	mov	rdi,1
 	mov	rsi,small_button
@@ -296,6 +308,34 @@ create_sbutton:
 	syscall
 	ret
 
+create_double:
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,double
+	mov	rdx,double_len
+	syscall
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,d_end
+	mov	rdx,d_end_len
+	syscall
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,d_s
+	mov	rdx,d_s_len
+	syscall
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,d_mid
+	mov	rdx,d_mid_len
+	syscall
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,d_b
+	mov	rdx,d_b_len
+	syscall
+	ret
+
 create_button:
 	
 	mov	rax,1
@@ -303,7 +343,6 @@ create_button:
 	mov	rsi,part1
 	mov	rdx,part1_len
 	syscall
-
 
 	mov	rax,1
 	mov	rdi,1
@@ -376,5 +415,22 @@ file_big:
 	mov	rdi,1
 	mov	rsi,file_too_big_text
 	mov	rdx,file_too_big_text_len
+	syscall
+	ret
+_fail:
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,debug_text
+	mov	rdx,debug_text_len
+	syscall
+	jmp _exit
+
+
+;finish later
+_success:
+	mov	rax,1
+	mov	rdi,1
+	mov	rsi,0
+	mov	rdx,0
 	syscall
 	ret

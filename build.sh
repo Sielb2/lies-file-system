@@ -1,5 +1,5 @@
 #!/bin/bash
-nasm -felf64 home.asm
+nasm -f elf64 home.asm
 ld home.o -o home
 echo "build completed"
 cd files
